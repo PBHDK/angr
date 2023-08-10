@@ -29,17 +29,21 @@ def parse_pc_sections(p: angr.Project):
     ADBBaseAddr = ADBSec.vaddr
     ADEBaseAddr = ADESec.vaddr
 
-    ADBSecRaw = bytes.hex(p.loader.memory.load(ADBBaseAddr, ADBSec.memsize))
-    ADESecRaw = bytes.hex(p.loader.memory.load(ADEBaseAddr, ADESec.memsize))
+    ADBSecRaw: bytes = p.loader.memory.load(ADBBaseAddr, ADBSec.memsize)
+    ADESecRaw: bytes = p.loader.memory.load(ADEBaseAddr, ADESec.memsize)
 
     # Contain (PC addr, ID str) pairs
-    ADBSecList = [(int(ADBSecRaw[i:i+8], 16) + ADBBaseAddr + i * PC_ENT_SIZE,
-                   str(ADBSecRaw[i+8:i+24]))
-                  for i in range(0, len(ADBSecRaw), 24)]
+    # The PC address is computed as: first 4 bytes at address of entry i + offset
+    # The address of entry i is computed as: section address + i * section size
+    #
+    # The ID is composed of 8 little-endian bytes. The ID is signed.
+    ADBSecList = [(int.from_bytes(ADBSecRaw[i:i+4], "little", True) + ADBBaseAddr + i * PC_ENT_SIZE,
+                   int.from_bytes(ADBSecRaw[i+4:i+12], "little", True))
+                  for i in range(0, len(ADBSecRaw), 12)]
 
-    ADESecList = [(int(ADESecRaw[i:i+8], 16) + ADEBaseAddr + i * PC_ENT_SIZE,
-                   str(ADESecRaw[i+8:i+24]))
-                  for i in range(0, len(ADESecRaw), 24)]
+    ADESecList = [(int.from_bytes(ADESecRaw[i:i+4], "little", True) + ADEBaseAddr + i * PC_ENT_SIZE,
+                   int.from_bytes(ADESecRaw[i+4:i+12], "little", True))
+                  for i in range(0, len(ADESecRaw), 12)]
 
     return ADBSecList, ADESecList
 
