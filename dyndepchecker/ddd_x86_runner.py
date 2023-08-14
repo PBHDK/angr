@@ -21,3 +21,11 @@ def execute_concretely(p: angr.Project, state, address, memory_concretize=[],
     exploration = simgr.run()
 
     return exploration.stashes['found'][0]
+
+
+def get_inst_successor_addr(p: angr.Project, curr_addr: int):
+    block_addrs = p.factory.block(curr_addr).instruction_addrs
+    if len(block_addrs) > 1:
+        return block_addrs[1]
+    else:
+        return None
