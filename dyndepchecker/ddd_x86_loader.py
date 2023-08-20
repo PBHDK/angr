@@ -20,14 +20,6 @@ PC_ENT_SIZE = 96
 # logging.getLogger('GDBProtocol').setLevel('DEBUG')
 
 
-def get_inst_successor_addr(p: angr.Project, curr_addr: int) -> int:
-    block_addrs = p.factory.block(curr_addr).instruction_addrs
-    if len(block_addrs) > 1:
-        return block_addrs[1]
-    else:
-        return -1
-
-
 def parse_pc_sections(p: angr.Project) -> dict[int, int]:
     def convert_offset_to_pc(raw_section: bytes, base_addr: int, ind: int) -> int:
         return base_addr + ind * PC_ENT_SIZE + int.from_bytes(raw_section[ind : ind + 4], "little", True)
@@ -46,6 +38,8 @@ def parse_pc_sections(p: angr.Project) -> dict[int, int]:
     ADBSecRaw: bytes = p.loader.memory.load(ADBBaseAddr, ADBSec.memsize)
     ADESecRaw: bytes = p.loader.memory.load(ADEBaseAddr, ADESec.memsize)
 
+    # TODO: what if we have multiple dependencies with the same beginning?
+
     # Contain (PC addr, ID str) pairs
     # The PC address is computed as: first 4 bytes at address of entry i + offset
     # The address of entry i is computed as: section address + i * section size asdf asdf awef
@@ -63,13 +57,14 @@ def parse_pc_sections(p: angr.Project) -> dict[int, int]:
 
     ADBToADEDict = {ADB_ID_Dict[ID]: ADE_ID_Dict[ID] for ID, _ in ADB_ID_Dict.items()}
 
-    ADBSuccToADESuccDict: dict[int, int] = {
-        get_inst_successor_addr(p, beg): get_inst_successor_addr(p, end) for beg, end in ADBToADEDict.items()
-    }
+    # ADBSuccToADESuccDict: dict[int, int] = {
+    #     get_inst_successor_addr(p, beg): get_inst_successor_addr(p, end) for beg, end in ADBToADEDict.items()
+    # }
+    # return ADBSuccToADESuccDict
 
     # At this point we don't need the IDs anymore.
     # We have matched the final PCs of the ADBs and ADEs respectively.
-    return ADBSuccToADESuccDict
+    return ADBToADEDict
 
 
 def load_linux_kernel_project() -> angr.Project:
